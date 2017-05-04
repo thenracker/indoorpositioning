@@ -10,6 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import cz.weissar.indoorpositioning.R;
+import cz.weissar.indoorpositioning.utils.sensor.SensorHelper;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -24,8 +25,14 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                SensorHelper.getInstance().registerListeners();
+                Snackbar.make(view, "Sensor listener activated", Snackbar.LENGTH_LONG)
+                        .setAction("Disable", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                SensorHelper.getInstance().unregisterListeners();
+                            }
+                        }).show();
             }
         });
     }
