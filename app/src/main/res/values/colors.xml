@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="colorPrimary">#D84315</color>
+    <color name="colorPrimaryDark">#BF360C</color>
+    <color name="colorAccentDark">#E64A19</color>
+    <color name="colorAccent">#F4511E</color>
+    <color name="colorAccentLight">#FF5722</color>
+
+    <color name="colorPrimaryInvertedDark">#FF7043</color>
+    <color name="colorPrimaryInvertedLight">#FF8A65</color>
+
+    <!--https://material.io/guidelines/style/color.html#color-color-palette-->
+
+</resources>
