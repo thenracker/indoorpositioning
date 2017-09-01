@@ -11,10 +11,7 @@ import cz.weissar.indoorpositioning.utils.sensor.Vector3D;
 
 public interface OnSensorMeasurement {
 
-    public static final int TYPE_ACCELEROMETER = Sensor.TYPE_ACCELEROMETER;
-    public static final int TYPE_GYROSCOPE = Sensor.TYPE_GYROSCOPE;
-
-    void onNewMeasure(SensorEvent event);
+    void onNewMeasure(float azimut, float pitch, float roll);
 
     void onVectorChanged(Vector3D vec);
 

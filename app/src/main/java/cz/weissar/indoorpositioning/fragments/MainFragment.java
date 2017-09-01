@@ -1,11 +1,9 @@
 package cz.weissar.indoorpositioning.fragments;
 
-import android.hardware.Sensor;
 import android.hardware.SensorEvent;
+import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +14,10 @@ import cz.weissar.indoorpositioning.listeners.OnSensorMeasurement;
 import cz.weissar.indoorpositioning.utils.sensor.SensorHelper;
 import cz.weissar.indoorpositioning.utils.sensor.Vector3D;
 
+import static android.hardware.Sensor.TYPE_ACCELEROMETER;
+import static android.hardware.Sensor.TYPE_GYROSCOPE;
+import static android.hardware.Sensor.TYPE_MAGNETIC_FIELD;
+
 /**
  * A placeholder fragment containing a simple view.
  */
@@ -23,6 +25,7 @@ public class MainFragment extends Fragment implements OnSensorMeasurement {
 
     private TextView accelerometerXTextView, accelerometerYTextView, accelerometerZTextView;
     private TextView gyroscopeXTextView, gyroscopeYTextView, gyroscopeZTextView;
+    private TextView magnetometerXTextView, magnetometerYTextView, magnetometerZTextView;
 
     public MainFragment() {
     }
@@ -35,15 +38,15 @@ public class MainFragment extends Fragment implements OnSensorMeasurement {
 
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
-        //SensorHelper.getInstance().setListener(this);
-        //helloTextView = (TextView) view.findViewById(R.id.helloTextView);
-        //helloTextView2 = (TextView) view.findViewById(R.id.helloTextView2);
         accelerometerXTextView = ((TextView) view.findViewById(R.id.accelerometerXTextView));
         accelerometerYTextView = ((TextView) view.findViewById(R.id.accelerometerYTextView));
         accelerometerZTextView = ((TextView) view.findViewById(R.id.accelerometerZTextView));
         gyroscopeXTextView = ((TextView) view.findViewById(R.id.gyroscopeXTextView));
         gyroscopeYTextView = ((TextView) view.findViewById(R.id.gyroscopeYTextView));
         gyroscopeZTextView = ((TextView) view.findViewById(R.id.gyroscopeZTextView));
+        magnetometerXTextView = ((TextView) view.findViewById(R.id.magnetometerXTextView));
+        magnetometerYTextView = ((TextView) view.findViewById(R.id.magnetometerYTextView));
+        magnetometerZTextView = ((TextView) view.findViewById(R.id.magnetometerZTextView));
     }
 
     @Override
@@ -54,37 +57,39 @@ public class MainFragment extends Fragment implements OnSensorMeasurement {
 
     @Override
     public void onStop() {
-        SensorHelper.getInstance().unsetListener();
+        SensorHelper.getInstance().unregisterListeners(); //prozatím máme jednoho, můžeme si dovolit
         super.onStop();
     }
 
     @Override
-    public void onNewMeasure(SensorEvent event) {
-        String sensorName = event.sensor.getName();
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            //helloTextView.setText(sensorName + ":\nX: " + event.values[0] + "; Y: " + event.values[1] + "; Z: " + event.values[2] + ";");
-        } else if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
-            //helloTextView2.setText(sensorName + ":\nX: " + event.values[0] + "; Y: " + event.values[1] + "; Z: " + event.values[2] + ";");
-        }
+    public void onNewMeasure(float azimut, float pitch, float roll) {
+        //magnetometerXTextView.setText(format(Math.toDegrees((double) azimut)));
+        //magnetometerYTextView.setText(format(Math.toDegrees((double) pitch)));
+        //magnetometerZTextView.setText(format(Math.toDegrees((double) roll)));
     }
 
     @Override
     public void onVectorChanged(Vector3D vec) {
         switch (vec.getType()) {
             case TYPE_ACCELEROMETER:
-                accelerometerXTextView.setText(format(vec.getDeltaX()));
-                accelerometerYTextView.setText(format(vec.getDeltaY()));
-                accelerometerZTextView.setText(format(vec.getDeltaZ()));
+                accelerometerXTextView.setText(format(vec.getX()));
+                accelerometerYTextView.setText(format(vec.getY()));
+                accelerometerZTextView.setText(format(vec.getZ()));
                 break;
             case TYPE_GYROSCOPE:
-                gyroscopeXTextView.setText(format(vec.getDeltaX()));
-                gyroscopeYTextView.setText(format(vec.getDeltaY()));
-                gyroscopeZTextView.setText(format(vec.getDeltaZ()));
+                gyroscopeXTextView.setText(format(vec.getX()));
+                gyroscopeYTextView.setText(format(vec.getY()));
+                gyroscopeZTextView.setText(format(vec.getZ()));
+                break;
+            case TYPE_MAGNETIC_FIELD:
+                magnetometerXTextView.setText(format(vec.getX()));
+                magnetometerYTextView.setText(format(vec.getY()));
+                magnetometerZTextView.setText(format(vec.getZ()));
                 break;
         }
     }
-    
-    private String format(float x){
-        return String.format("%.2f", x);
+
+    private String format(double x) {
+        return String.format("%.1f", x);
     }
 }

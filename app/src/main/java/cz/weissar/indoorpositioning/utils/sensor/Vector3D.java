@@ -6,35 +6,36 @@ package cz.weissar.indoorpositioning.utils.sensor;
 
 public class Vector3D {
 
-    int type;
-    float xOld, yOld, zOld;
-    float deltaX, deltaY, deltaZ;
+    private int type;
+    private float[] values;
 
     public static Vector3D newInstance(float initX, float initY, float initZ, int type) {
         Vector3D vec = new Vector3D();
-        vec.xOld = initX;
-        vec.yOld = initY;
-        vec.zOld = initZ;
+        vec.values = new float[]{initX, initY, initZ};
         vec.type = type;
         return vec;
     }
 
-    public void newValues(float newX, float newY, float newZ){
-        this.deltaX += (newX - xOld);
-        this.deltaY += (newY - yOld);
-        this.deltaZ += (newZ - zOld);
+    public void newValues(float newX, float newY, float newZ) {
+        values[0] = newX;
+        values[1] = newY;
+        values[2] = newZ;
     }
 
-    public float getDeltaX() {
-        return deltaX;
+    public float[] getValues() {
+        return values;
     }
 
-    public float getDeltaY() {
-        return deltaY;
+    public float getX() {
+        return values[0];
     }
 
-    public float getDeltaZ() {
-        return deltaZ;
+    public float getY() {
+        return values[1];
+    }
+
+    public float getZ() {
+        return values[2];
     }
 
     public int getType() {
