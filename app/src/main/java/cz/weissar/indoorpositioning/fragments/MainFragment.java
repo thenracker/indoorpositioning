@@ -17,6 +17,7 @@ import cz.weissar.indoorpositioning.utils.sensor.Vector3D;
 import static android.hardware.Sensor.TYPE_ACCELEROMETER;
 import static android.hardware.Sensor.TYPE_GYROSCOPE;
 import static android.hardware.Sensor.TYPE_MAGNETIC_FIELD;
+import static android.hardware.Sensor.TYPE_ROTATION_VECTOR;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -26,6 +27,7 @@ public class MainFragment extends Fragment implements OnSensorMeasurement {
     private TextView accelerometerXTextView, accelerometerYTextView, accelerometerZTextView;
     private TextView gyroscopeXTextView, gyroscopeYTextView, gyroscopeZTextView;
     private TextView magnetometerXTextView, magnetometerYTextView, magnetometerZTextView;
+    private TextView rotationXTextView, rotationYTextView, rotationZTextView;
 
     public MainFragment() {
     }
@@ -47,18 +49,23 @@ public class MainFragment extends Fragment implements OnSensorMeasurement {
         magnetometerXTextView = ((TextView) view.findViewById(R.id.magnetometerXTextView));
         magnetometerYTextView = ((TextView) view.findViewById(R.id.magnetometerYTextView));
         magnetometerZTextView = ((TextView) view.findViewById(R.id.magnetometerZTextView));
+        rotationXTextView = ((TextView) view.findViewById(R.id.rotationXTextView));
+        rotationYTextView = ((TextView) view.findViewById(R.id.rotationYTextView));
+        rotationZTextView = ((TextView) view.findViewById(R.id.rotationZTextView));
+        
     }
 
     @Override
     public void onResume() {
         super.onResume();
         SensorHelper.getInstance().setListener(this);
+        SensorHelper.getInstance().registerListeners();
     }
 
     @Override
-    public void onStop() {
+    public void onPause() {
         SensorHelper.getInstance().unregisterListeners(); //prozatím máme jednoho, můžeme si dovolit
-        super.onStop();
+        super.onPause();
     }
 
     @Override
@@ -85,6 +92,11 @@ public class MainFragment extends Fragment implements OnSensorMeasurement {
                 magnetometerXTextView.setText(format(vec.getX()));
                 magnetometerYTextView.setText(format(vec.getY()));
                 magnetometerZTextView.setText(format(vec.getZ()));
+                break;
+            case TYPE_ROTATION_VECTOR:
+                rotationXTextView.setText(format(vec.getX()));
+                rotationYTextView.setText(format(vec.getY()));
+                rotationZTextView.setText(format(vec.getZ()));
                 break;
         }
     }
