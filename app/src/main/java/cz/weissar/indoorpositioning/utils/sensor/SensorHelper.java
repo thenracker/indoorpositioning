@@ -30,21 +30,21 @@ public class SensorHelper implements SensorEventListener {
     private SensorManager sensorManager;
     private final Sensor accelerometer;
     private final Sensor gyroscope;
-    private final Sensor magnetometer;
+    //private final Sensor magnetometer;
     private final Sensor rotation;
 
     private OnSensorMeasurement onSensorMeasurementListener;
 
     private Vector3D vecAccelerometer;
     private Vector3D vecGyroscope;
-    private Vector3D vecMagnetometer;
+    //private Vector3D vecMagnetometer;
     private Vector3D vecRotation;
 
     private SensorHelper() {
         sensorManager = (SensorManager) IndoorPositioningApp.getContext().getSystemService(SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         gyroscope = sensorManager.getDefaultSensor(TYPE_GYROSCOPE);
-        magnetometer = sensorManager.getDefaultSensor(TYPE_MAGNETIC_FIELD);
+        //magnetometer = sensorManager.getDefaultSensor(TYPE_MAGNETIC_FIELD);
         rotation = sensorManager.getDefaultSensor(TYPE_ROTATION_VECTOR);
     }
 
@@ -76,7 +76,7 @@ public class SensorHelper implements SensorEventListener {
     public void registerListeners() {
         sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
-        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_NORMAL);
+        //sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, rotation, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
@@ -118,9 +118,6 @@ public class SensorHelper implements SensorEventListener {
         if (event.sensor.getType() == TYPE_GYROSCOPE) {
             handleSensorChanged(vecGyroscope, event);
         }
-        if (event.sensor.getType() == TYPE_MAGNETIC_FIELD) {
-            handleSensorChanged(vecMagnetometer, event);
-        }
         if (event.sensor.getType() == TYPE_ROTATION_VECTOR) {
             handleSensorChanged(vecRotation, event);
         }
@@ -138,9 +135,6 @@ public class SensorHelper implements SensorEventListener {
             }
             if (event.sensor.getType() == TYPE_GYROSCOPE) {
                 vecGyroscope = Vector3D.newInstance(event.values[0], event.values[1], event.values[2], event.sensor.getType());
-            }
-            if (event.sensor.getType() == TYPE_MAGNETIC_FIELD) {
-                vecMagnetometer = Vector3D.newInstance(event.values[0], event.values[1], event.values[2], event.sensor.getType());
             }
             if (event.sensor.getType() == TYPE_ROTATION_VECTOR) {
                 float[] rotationMatrix = new float[16];
