@@ -75,6 +75,10 @@ public class Vec3D {
 		z = array[2];
 	}
 
+	public float[] toFloatArray(){
+		return new float[]{(float)x, (float)y, (float)z};
+	}
+
 	/**
 	 * Returns the x coordinate
 	 * 

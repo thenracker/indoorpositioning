@@ -11,8 +11,12 @@ import cz.weissar.indoorpositioning.utils.sensor.Vector3D;
 
 public interface OnSensorMeasurement {
 
-    void onNewMeasure(float azimut, float pitch, float roll);
+    void updateEsteemedVector(float[] vec);
 
-    void onVectorChanged(Vector3D vec);
+    //void updateEsteemedVector(float x, float y, float z);
+
+    //void onNewMeasure(float azimut, float pitch, float roll);
+
+    //void onVectorChanged(Vector3D vec);
 
 }
