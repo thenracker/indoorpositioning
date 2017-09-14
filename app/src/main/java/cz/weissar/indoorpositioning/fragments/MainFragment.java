@@ -1,6 +1,9 @@
 package cz.weissar.indoorpositioning.fragments;
 
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
@@ -99,6 +102,25 @@ public class MainFragment extends Fragment implements OnSensorMeasurement {
     }
 
     @Override
+    public void onNewMeasure(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
+            gyroscopeXTextView.setText(format(Math.abs(event.values[0]) > 0.5? event.values[0] : 0));
+            gyroscopeYTextView.setText(format(Math.abs(event.values[1]) > 0.5? event.values[1] : 0));
+            gyroscopeZTextView.setText(format(Math.abs(event.values[2]) > 0.5? event.values[2] : 0));
+        }
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
+            accelerometerXTextView.setText(format(event.values[0]));
+            accelerometerYTextView.setText(format(event.values[1]));
+            accelerometerZTextView.setText(format(event.values[2]));
+
+
+        }
+        if (event.sensor.getType() == Sensor.TYPE_STEP_DETECTOR){
+            rotationXTextView.setText(String.valueOf(System.currentTimeMillis() / 1000));
+        }
+    }
+
+    @Override
     public void updateEsteemedVector(float[] vec) {
         if (vec == null) return;
 
@@ -130,9 +152,9 @@ public class MainFragment extends Fragment implements OnSensorMeasurement {
             zPlus.setPadding(0, 0, 0, zPlus.getHeight());
         }
 
-        gyroscopeXTextView.setText(format(vec[0]));
+        /*gyroscopeXTextView.setText(format(vec[0]));
         gyroscopeYTextView.setText(format(vec[1]));
-        gyroscopeZTextView.setText(format(vec[2]));
+        gyroscopeZTextView.setText(format(vec[2]));*/
 
         if (record) {
             floats.add(vec[2]);

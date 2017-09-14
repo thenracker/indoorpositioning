@@ -179,7 +179,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="@string/gyroscope" />
+            android:text="Linear akcelerometr" />
 
         <TextView
             android:id="@+id/gyroscopeXTextView"
@@ -204,7 +204,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Rotation vector" />
+            android:text="Step detector" />
 
         <TextView
             android:id="@+id/rotationXTextView"

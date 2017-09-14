@@ -16,6 +16,7 @@ import static android.hardware.Sensor.TYPE_ACCELEROMETER;
 import static android.hardware.Sensor.TYPE_GYROSCOPE;
 import static android.hardware.Sensor.TYPE_MAGNETIC_FIELD;
 import static android.hardware.Sensor.TYPE_ROTATION_VECTOR;
+import static android.hardware.Sensor.TYPE_STEP_DETECTOR;
 
 /**
  * Created by petrw on 04.05.2017.
@@ -32,8 +33,9 @@ public class SensorHelper implements SensorEventListener {
 
     private SensorManager sensorManager;
     private final Sensor accelerometer;
+    private final Sensor linearAccelerometer;
     private final Sensor gyroscope;
-    //private final Sensor magnetometer;
+    private final Sensor stepSensor;
     private final Sensor rotation;
 
     private OnSensorMeasurement onSensorMeasurementListener;
@@ -48,7 +50,9 @@ public class SensorHelper implements SensorEventListener {
     private SensorHelper() {
         sensorManager = (SensorManager) IndoorPositioningApp.getContext().getSystemService(SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        linearAccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         gyroscope = sensorManager.getDefaultSensor(TYPE_GYROSCOPE);
+        stepSensor = sensorManager.getDefaultSensor(TYPE_STEP_DETECTOR);
         rotation = sensorManager.getDefaultSensor(TYPE_ROTATION_VECTOR);
         vecDec = new VectorDetector();
     }
@@ -82,6 +86,8 @@ public class SensorHelper implements SensorEventListener {
         sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(this, rotation, SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(this, linearAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_FASTEST);
     }
 
     public void unregisterListeners() {
@@ -90,6 +96,9 @@ public class SensorHelper implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+
+        onSensorMeasurementListener.onNewMeasure(event);
+
         if (event.sensor.getType() == TYPE_GYROSCOPE) {
             //onSensorMeasurementListener.updateEsteemedVector(event.values);
             vecDec.addNewVals(event.values[0], event.values[1], event.values[2], System.currentTimeMillis());
