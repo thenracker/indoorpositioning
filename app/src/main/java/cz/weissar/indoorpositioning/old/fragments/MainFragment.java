@@ -18,7 +18,6 @@ import java.util.List;
 
 import cz.weissar.indoorpositioning.R;
 import cz.weissar.indoorpositioning.old.listeners.OnSensorMeasurement;
-import cz.weissar.indoorpositioning.old.utils.sensor.SensorHelper;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -70,13 +69,13 @@ public class MainFragment extends Fragment implements OnSensorMeasurement {
                     return true;
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
                     record = false;
-                    if(!floats.isEmpty()){
+                    if (!floats.isEmpty()) {
                         float total = 0.0f;
                         for (Float a : floats) {
                             total += a;
                         }
                         // cca * 5 do centimetrů dle posledních měření
-                        rotationXTextView.setText("Uraženo " + total*5 + " cm");
+                        rotationXTextView.setText("Uraženo " + total * 5 + " cm");
                         floats.clear();
                     }
                     return true;
@@ -89,31 +88,31 @@ public class MainFragment extends Fragment implements OnSensorMeasurement {
     @Override
     public void onResume() {
         super.onResume();
-        SensorHelper.getInstance().setListener(this);
-        SensorHelper.getInstance().registerListeners();
+        /*SensorHelper.getInstance().setListener(this);
+        SensorHelper.getInstance().registerListeners();*/
     }
 
     @Override
     public void onPause() {
-        SensorHelper.getInstance().unregisterListeners(); //prozatím máme jednoho, můžeme si dovolit
+        //SensorHelper.getInstance().unregisterListeners(); //prozatím máme jednoho, můžeme si dovolit
         super.onPause();
     }
 
     @Override
     public void onNewMeasure(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
-            gyroscopeXTextView.setText(format(Math.abs(event.values[0]) > 0.5? event.values[0] : 0));
-            gyroscopeYTextView.setText(format(Math.abs(event.values[1]) > 0.5? event.values[1] : 0));
-            gyroscopeZTextView.setText(format(Math.abs(event.values[2]) > 0.5? event.values[2] : 0));
+        if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
+            gyroscopeXTextView.setText(format(Math.abs(event.values[0]) > 0.5 ? event.values[0] : 0));
+            gyroscopeYTextView.setText(format(Math.abs(event.values[1]) > 0.5 ? event.values[1] : 0));
+            gyroscopeZTextView.setText(format(Math.abs(event.values[2]) > 0.5 ? event.values[2] : 0));
         }
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             accelerometerXTextView.setText(format(event.values[0]));
             accelerometerYTextView.setText(format(event.values[1]));
             accelerometerZTextView.setText(format(event.values[2]));
 
 
         }
-        if (event.sensor.getType() == Sensor.TYPE_STEP_DETECTOR){
+        if (event.sensor.getType() == Sensor.TYPE_STEP_DETECTOR) {
             rotationXTextView.setText(String.valueOf(System.currentTimeMillis() / 1000));
         }
     }
