@@ -1,23 +1,23 @@
 package cz.weissar.indoorpositioning.remaster.scene.fragments;
 
 import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.view.ViewPager;
+import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
-import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import cz.weissar.indoorpositioning.IndoorPositioningApp;
 import cz.weissar.indoorpositioning.R;
 
 import static android.content.Context.SENSOR_SERVICE;
@@ -28,38 +28,9 @@ import static android.content.Context.SENSOR_SERVICE;
 
 public class MainFragment extends Fragment {
 
-    @BindView(R.id.accelerometerXTextView)
-    protected TextView accelerometerXTextView;
-    @BindView(R.id.accelerometerYTextView)
-    protected TextView accelerometerYTextView;
-    @BindView(R.id.accelerometerZTextView)
-    protected TextView accelerometerZTextView;
-    @BindView(R.id.gyroscopeXTextView)
-    protected TextView gyroscopeXTextView;
-    @BindView(R.id.gyroscopeYTextView)
-    protected TextView gyroscopeYTextView;
-    @BindView(R.id.gyroscopeZTextView)
-    protected TextView gyroscopeZTextView;
-    @BindView(R.id.rotationXTextView)
-    protected TextView rotationXTextView;
-    @BindView(R.id.rotationYTextView)
-    protected TextView rotationYTextView;
-    @BindView(R.id.rotationZTextView)
-    protected TextView rotationZTextView;
+    @BindView(R.id.viewPager)
+    ViewPager viewPager;
 
-    @BindView(R.id.xPlus)
-    protected FrameLayout xPlus;
-    @BindView(R.id.xMinus)
-    protected FrameLayout xMinus;
-    @BindView(R.id.yPlus)
-    protected FrameLayout yPlus;
-    @BindView(R.id.yMinus)
-    protected FrameLayout yMinus;
-    @BindView(R.id.zPlus)
-    protected FrameLayout zPlus;
-    @BindView(R.id.zMinus)
-    protected FrameLayout zMinus;
-    
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,45 +45,60 @@ public class MainFragment extends Fragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         ButterKnife.bind(this, view);
-        SensorManager sensorManager = (SensorManager) getContext().getSystemService(SENSOR_SERVICE);
-        Sensor linearAccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-        sensorManager.registerListener(new SensorEventListener() {
+        FragmentPagerAdapter adapter = new FragmentAdapter(getChildFragmentManager());
+        viewPager.setAdapter(adapter);
+        viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
-            public void onSensorChanged(SensorEvent event) {
-                float[] vec = event.values;
-                if (vec[0] > 0) {
-                    float x = 1.0f - Math.min(vec[0], 1.0f);
-                    xPlus.setPadding(0, (int) (x * xPlus.getHeight()), 0, 0);
-                    xMinus.setPadding(0, 0, 0, xMinus.getHeight());
-                } else {
-                    float x = -1.0f - Math.max(vec[0], -1.0f);
-                    xMinus.setPadding(0, 0, 0, (int) ((-x) * xMinus.getHeight()));
-                    xPlus.setPadding(0, 0, 0, xPlus.getHeight());
-                }
-                if (vec[1] > 0) {
-                    float y = 1.0f - Math.min(vec[1], 1.0f);
-                    yPlus.setPadding(0, (int) (y * yPlus.getHeight()), 0, 0);
-                    yMinus.setPadding(0, 0, 0, yMinus.getHeight());
-                } else {
-                    float y = -1.0f - Math.max(vec[1], -1.0f);
-                    yMinus.setPadding(0, 0, 0, (int) ((-y) * yMinus.getHeight()));
-                    yPlus.setPadding(0, 0, 0, yPlus.getHeight());
-                }
-                if (vec[2] > 0) {
-                    float z = 1.0f - Math.min(vec[2], 1.0f);
-                    zPlus.setPadding(0, (int) (z * zPlus.getHeight()), 0, 0);
-                    zMinus.setPadding(0, 0, 0, zMinus.getHeight());
-                } else {
-                    float z = -1.0f - Math.max(vec[2], -1.0f);
-                    zMinus.setPadding(0, 0, 0, (int) ((-z) * zMinus.getHeight()));
-                    zPlus.setPadding(0, 0, 0, zPlus.getHeight());
-                }
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                ((AppCompatActivity) getActivity()).getSupportActionBar().setTitle(getTitle(position));
             }
 
             @Override
-            public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            public void onPageSelected(int position) {
 
             }
-        }, linearAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+
+            }
+        });
+    }
+
+    private String getTitle(int pos){
+        switch (pos){
+            case 0: return "Lineární akcelerometr";
+            case 1: return "Rotation vector";
+            case 2: return "Gyroskop";
+            case 3: return "Step detector";
+            case 4: return "Akcelerometr";
+            default: return "IndoorpositioningApp";
+        }
+    }
+
+    private class FragmentAdapter extends FragmentPagerAdapter {
+
+        List<Fragment> fragmentList;
+
+        public FragmentAdapter(FragmentManager fm) {
+            super(fm);
+            fragmentList = new ArrayList<>();
+            fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_LINEAR_ACCELERATION, 2f));
+            fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_ROTATION_VECTOR, 1f));
+            fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_GYROSCOPE, 2f));
+            fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_STEP_DETECTOR, 1f));
+            fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_ACCELEROMETER, 8f));
+        }
+
+        @Override
+        public int getCount() {
+            return fragmentList == null ? 0 : fragmentList.size();
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            return fragmentList == null ? null : fragmentList.get(position);
+        }
+
     }
 }

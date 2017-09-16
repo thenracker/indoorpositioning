@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".old.activities.MainActivity">
+    tools:context=".remaster.scene.activities.MainActivity">
 
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
@@ -27,7 +27,7 @@
         android:name="cz.weissar.indoorpositioning.remaster.scene.fragments.MainFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:layout_marginTop="?attr/actionBarSize"
         tools:layout="@layout/fragment_main" />
 
 </android.support.design.widget.CoordinatorLayout>
