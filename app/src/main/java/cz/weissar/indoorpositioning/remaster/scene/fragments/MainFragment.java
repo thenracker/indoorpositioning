@@ -78,7 +78,7 @@ public class MainFragment extends Fragment {
 
     private class FragmentAdapter extends FragmentPagerAdapter {
 
-        List<Fragment> fragmentList;
+        List<SensorFragment> fragmentList;
 
         public FragmentAdapter(FragmentManager fm) {
             super(fm);

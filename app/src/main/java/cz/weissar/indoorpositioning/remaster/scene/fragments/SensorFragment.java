@@ -12,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
@@ -25,7 +26,7 @@ import static android.content.Context.SENSOR_SERVICE;
  * Created by petrw on 15.09.2017.
  */
 
-public class SensorFragment extends Fragment implements SensorEventListener{
+public class SensorFragment extends Fragment implements SensorEventListener {
 
     @BindView(R.id.accelerometerXTextView)
     protected TextView accelerometerXTextView;
@@ -66,7 +67,7 @@ public class SensorFragment extends Fragment implements SensorEventListener{
 
     private String FORMAT = "%.3f";
 
-    public static Fragment newInstance(int typeLinearAcceleration, float maxVal) {
+    public static SensorFragment newInstance(int typeLinearAcceleration, float maxVal) {
         SensorFragment frag = new SensorFragment();
         Bundle args = new Bundle();
         args.putInt("TYPE", typeLinearAcceleration);
@@ -132,14 +133,13 @@ public class SensorFragment extends Fragment implements SensorEventListener{
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    if (!record) {
-                        recordX = 0;
-                        recordY = 0;
-                        recordZ = 0;
-                    }
                     record = true;
                     return true;
-                } else {
+                }
+                if(event.getAction() == MotionEvent.ACTION_UP){
+                    recordX = 0;
+                    recordY = 0;
+                    recordZ = 0;
                     record = false;
                 }
                 return false;
