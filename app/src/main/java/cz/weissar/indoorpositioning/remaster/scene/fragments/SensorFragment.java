@@ -162,7 +162,7 @@ public class SensorFragment extends Fragment implements SensorEventListener {
         accelerometerXTextView.setText(String.format(FORMAT, vec[0]));
         if (record) {
             recordX += vec[0];
-            gyroscopeXTextView.setText(String.format(FORMAT, vec[0]));
+            gyroscopeXTextView.setText(String.format(FORMAT, recordX));
         }
         if (event.values.length < 2) return;
         if (vec[1] > 0) {
@@ -177,7 +177,7 @@ public class SensorFragment extends Fragment implements SensorEventListener {
         accelerometerYTextView.setText(String.format(FORMAT, vec[1]));
         if (record) {
             recordY += vec[0];
-            gyroscopeYTextView.setText(String.format(FORMAT, vec[1]));
+            gyroscopeYTextView.setText(String.format(FORMAT, recordY));
         }
         if (event.values.length < 3) return;
         if (vec[2] > 0) {
@@ -192,7 +192,7 @@ public class SensorFragment extends Fragment implements SensorEventListener {
         accelerometerZTextView.setText(String.format(FORMAT, vec[2]));
         if (record) {
             recordZ += vec[2];
-            gyroscopeZTextView.setText(String.format(FORMAT, vec[2]));
+            gyroscopeZTextView.setText(String.format(FORMAT, recordZ));
         }
         if (event.values.length < 4) return;
         if (vec[3] > 0) {
