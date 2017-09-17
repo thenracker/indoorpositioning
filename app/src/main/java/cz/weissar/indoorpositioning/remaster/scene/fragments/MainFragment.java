@@ -84,10 +84,10 @@ public class MainFragment extends Fragment {
             super(fm);
             fragmentList = new ArrayList<>();
             fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_LINEAR_ACCELERATION, 2f));
-            fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_ROTATION_VECTOR, 1f));
-            fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_GYROSCOPE, 2f));
-            fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_STEP_DETECTOR, 1f));
-            fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_ACCELEROMETER, 8f));
+            //fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_ROTATION_VECTOR, 1f));
+            //fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_GYROSCOPE, 2f));
+            //fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_STEP_DETECTOR, 1f));
+            //fragmentList.add(SensorFragment.newInstance(Sensor.TYPE_ACCELEROMETER, 8f));
         }
 
         @Override

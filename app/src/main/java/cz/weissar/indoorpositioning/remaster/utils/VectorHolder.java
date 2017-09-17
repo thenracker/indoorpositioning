@@ -4,8 +4,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-
-import cz.weissar.indoorpositioning.old.transforms.Quat;
+import android.util.Log;
 
 /**
  * Created by petrw on 17.09.2017.
@@ -15,7 +14,7 @@ public class VectorHolder implements SensorEventListener {
 
     float posX, posY, posZ;
 
-    float lastTimestamp;
+    long lastTimestamp;
     float x, y, z;
 
     float speedX, speedY, speedZ;
@@ -25,15 +24,15 @@ public class VectorHolder implements SensorEventListener {
     /**
      * Could be used when a step is detected - the speed should stay the same
      */
-    public void startNewEpisode(){
-        posX = posY = posZ = 0;
+    public void startNewEpisode() {
+        posX = posY = posZ = 0f;
     }
 
     /**
      * @param values Values from TYPE_ROTATION_VECTOR ONLY!!!
      * @return returns float[3] of XYZ world coordinations (+Y to North, +X to East, -Z to middle Earth (gravity pole))
      */
-    public float[] getRealWorldMove(float[] values){ //float[]{x, y, z, θ]
+    public float[] getRealWorldMove(float[] values) { //float[]{x, y, z, θ]
         float[] rotMat = new float[9];
         SensorManager.getRotationMatrixFromVector(rotMat, values);
 
@@ -56,7 +55,7 @@ public class VectorHolder implements SensorEventListener {
      * @param timeStamp
      * @param data      float[3]
      */
-    private void addAcceleration(long timeStamp, float... data) {
+    public void addAcceleration(long timeStamp, float... data) {
         cropNoise(data);
         //cropByGyro??
         computeSpeed(timeStamp, data[0], data[1], data[2]);
@@ -68,10 +67,13 @@ public class VectorHolder implements SensorEventListener {
 
     private void computeSpeed(long timeStamp, float x, float y, float z) {
 
-        float m = lastTimestamp - timeStamp;
-        speedX += x * m * SPEED_GROW;
-        speedY += y * m * SPEED_GROW;
-        speedZ += z * m * SPEED_GROW;
+        //float m = (float)(timeStamp - lastTimestamp);
+        speedX = x;
+        speedY = y;
+        speedZ = z;
+        //speedX += x * m * SPEED_GROW;
+        //speedY += y * m * SPEED_GROW;
+        //speedZ += z * m * SPEED_GROW;
 
         this.lastTimestamp = timeStamp;
         this.x = x;
@@ -93,10 +95,10 @@ public class VectorHolder implements SensorEventListener {
      */
     private void cropNoise(float... data) {
         for (int i = 0; i < data.length; i++) {
-            if (Math.abs(data[i]) < 0.5) {
+            if (Math.abs(data[i]) < 0.5f) {
                 data[i] = 0;
             } else {
-                data[i] = Math.round(data[i] * 1000f) / 1000f;
+                data[i] = Math.round(data[i] * 100f) / 100f;
             }
         }
     }
@@ -105,9 +107,9 @@ public class VectorHolder implements SensorEventListener {
      * Simulates damp of speed
      */
     private void damp() {
-        speedX = speedX > 0 ? speedX - DAMPING : speedX + DAMPING;
-        speedY = speedY > 0 ? speedY - DAMPING : speedY + DAMPING;
-        speedZ = speedZ > 0 ? speedZ - DAMPING : speedZ + DAMPING;
+        speedX = speedX == 0? 0 : speedX > 0 ? speedX - DAMPING : speedX + DAMPING;
+        speedY = speedY == 0? 0 : speedY > 0 ? speedY - DAMPING : speedY + DAMPING;
+        speedZ = speedZ == 0? 0 : speedZ > 0 ? speedZ - DAMPING : speedZ + DAMPING;
     }
 
 

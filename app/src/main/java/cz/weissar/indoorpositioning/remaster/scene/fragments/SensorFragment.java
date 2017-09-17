@@ -8,17 +8,18 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import cz.weissar.indoorpositioning.R;
+import cz.weissar.indoorpositioning.remaster.utils.VectorHolder;
 
 import static android.content.Context.SENSOR_SERVICE;
 
@@ -66,6 +67,9 @@ public class SensorFragment extends Fragment implements SensorEventListener {
     boolean record = false;
 
     private String FORMAT = "%.3f";
+
+    private VectorHolder holder = new VectorHolder();
+    private float[] pos = new float[3];
 
     public static SensorFragment newInstance(int typeLinearAcceleration, float maxVal) {
         SensorFragment frag = new SensorFragment();
@@ -116,7 +120,6 @@ public class SensorFragment extends Fragment implements SensorEventListener {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         ButterKnife.bind(this, view);
-
     }
 
     private void unregister() {
@@ -127,7 +130,12 @@ public class SensorFragment extends Fragment implements SensorEventListener {
     private void initViewAndRegister() {
         SensorManager sensorManager = (SensorManager) getContext().getSystemService(SENSOR_SERVICE);
         Sensor linearAccelerometer = sensorManager.getDefaultSensor(sensorType);
-        sensorManager.registerListener(this, linearAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(this, linearAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+
+        if (sensorType == Sensor.TYPE_LINEAR_ACCELERATION) {
+            sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_NORMAL);
+            sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR), SensorManager.SENSOR_DELAY_NORMAL);
+        }
 
         fab.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -136,7 +144,7 @@ public class SensorFragment extends Fragment implements SensorEventListener {
                     record = true;
                     return true;
                 }
-                if(event.getAction() == MotionEvent.ACTION_UP){
+                if (event.getAction() == MotionEvent.ACTION_UP) {
                     recordX = 0;
                     recordY = 0;
                     recordZ = 0;
@@ -149,6 +157,39 @@ public class SensorFragment extends Fragment implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+
+        if (sensorType != Sensor.TYPE_LINEAR_ACCELERATION) {
+            drawGraphs(event);
+        } else {
+
+            if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
+                holder.addAcceleration(System.currentTimeMillis(), event.values);
+
+            } else if(event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR){
+                float[] realWorldMove = holder.getRealWorldMove(event.values);
+                for (int i = 0; i < realWorldMove.length; i++) {
+                    pos[i] += realWorldMove[i];
+                }
+                gyroscopeXTextView.setText(String.format(FORMAT, pos[0]));
+                gyroscopeYTextView.setText(String.format(FORMAT, pos[1]));
+                gyroscopeZTextView.setText(String.format(FORMAT, pos[2]));
+
+                holder.startNewEpisode();
+
+                //no.. tak todo - páč tohle je zlý :/ .. ale nějakým způsobem to dokáže zhruba určit pohyb..
+                //bude hoodně potřeba ořezávat hodnoty dle gyra, páč to jsou randálky jak zmrd.. a to jenom na delay normal
+                //a bude to chtít detekovat velké změny a pokud nějaké nastanou, tak začne věřit jednomu směru dokud nepřijde reakce
+                //pomyslně rozkouskovat na etapy
+
+            } else if(event.sensor.getType() == Sensor.TYPE_STEP_DETECTOR){
+                holder.startNewEpisode();
+                Log.d("POS(" + System.currentTimeMillis() + ")", String.format("Moved by: %s north, %s east, %s up the sky", pos[0], pos[1], pos[2]));
+            }
+        }
+
+    }
+
+    private void drawGraphs(SensorEvent event) {
         float[] vec = event.values;
         if (vec[0] > 0) {
             float x = maxVal - Math.min(vec[0], maxVal);
