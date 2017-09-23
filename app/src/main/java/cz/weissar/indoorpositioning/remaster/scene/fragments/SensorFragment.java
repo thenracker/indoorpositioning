@@ -15,10 +15,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import cz.weissar.indoorpositioning.R;
+import cz.weissar.indoorpositioning.remaster.scene.interfaces.MovementChange;
 import cz.weissar.indoorpositioning.remaster.utils.VectorHolder;
 
 import static android.content.Context.SENSOR_SERVICE;
@@ -27,7 +29,7 @@ import static android.content.Context.SENSOR_SERVICE;
  * Created by petrw on 15.09.2017.
  */
 
-public class SensorFragment extends Fragment implements SensorEventListener {
+public class SensorFragment extends Fragment implements MovementChange {
 
     @BindView(R.id.accelerometerXTextView)
     protected TextView accelerometerXTextView;
@@ -68,7 +70,7 @@ public class SensorFragment extends Fragment implements SensorEventListener {
 
     private String FORMAT = "%.3f";
 
-    private VectorHolder holder = new VectorHolder();
+    private VectorHolder holder; // = new VectorHolder();
     private float[] pos = new float[3];
 
     public static SensorFragment newInstance(int typeLinearAcceleration, float maxVal) {
@@ -90,6 +92,7 @@ public class SensorFragment extends Fragment implements SensorEventListener {
             sensorType = savedInstanceState.getInt("TYPE");
             maxVal = savedInstanceState.getFloat("MAX");
         }
+        holder = new VectorHolder(this);
     }
 
     @Override
@@ -108,12 +111,14 @@ public class SensorFragment extends Fragment implements SensorEventListener {
     @Override
     public void onResume() {
         super.onResume();
-        initViewAndRegister();
+        holder.register((SensorManager) getContext().getSystemService(SENSOR_SERVICE));
+        //initViewAndRegister();
     }
 
     @Override
     public void onPause() {
-        unregister();
+        holder.unregister();
+        //unregister();
         super.onPause();
     }
 
@@ -122,7 +127,17 @@ public class SensorFragment extends Fragment implements SensorEventListener {
         ButterKnife.bind(this, view);
     }
 
-    private void unregister() {
+    @Override
+    public void onMovement(VectorHolder.Axis axis, double distance) {
+        //Log.d(axis.name(), String.format(" - moved by %s metters", distance));
+        switch (axis){
+            case X: gyroscopeXTextView.setText(String.format("%s - moved by %s meters", axis.name(), distance)); break;
+            case Y: gyroscopeYTextView.setText(String.format("%s - moved by %s meters", axis.name(), distance)); break;
+            case Z: gyroscopeZTextView.setText(String.format("%s - moved by %s meters", axis.name(), distance)); break;
+        }
+    }
+
+    /*private void unregister() {
         SensorManager sensorManager = (SensorManager) getContext().getSystemService(SENSOR_SERVICE);
         sensorManager.unregisterListener(this);
     }
@@ -133,8 +148,12 @@ public class SensorFragment extends Fragment implements SensorEventListener {
         sensorManager.registerListener(this, linearAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
 
         if (sensorType == Sensor.TYPE_LINEAR_ACCELERATION) {
-            sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_NORMAL);
-            sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR), SensorManager.SENSOR_DELAY_NORMAL);
+            sensorManager.registerListener(this,
+                    sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
+                    SensorManager.SENSOR_DELAY_NORMAL);
+            sensorManager.registerListener(this,
+                    sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR),
+                    SensorManager.SENSOR_DELAY_NORMAL);
         }
 
         fab.setOnTouchListener(new View.OnTouchListener() {
@@ -154,8 +173,8 @@ public class SensorFragment extends Fragment implements SensorEventListener {
             }
         });
     }
+    */
 
-    @Override
     public void onSensorChanged(SensorEvent event) {
 
         if (sensorType != Sensor.TYPE_LINEAR_ACCELERATION) {
@@ -163,7 +182,7 @@ public class SensorFragment extends Fragment implements SensorEventListener {
         } else {
 
             if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
-                holder.addAcceleration(System.currentTimeMillis(), event.values);
+                holder.addAcceleration(event.values);
 
             } else if(event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR){
                 float[] realWorldMove = holder.getRealWorldMove(event.values);
@@ -174,7 +193,6 @@ public class SensorFragment extends Fragment implements SensorEventListener {
                 gyroscopeYTextView.setText(String.format(FORMAT, pos[1]));
                 gyroscopeZTextView.setText(String.format(FORMAT, pos[2]));
 
-                holder.startNewEpisode();
 
                 //no.. tak todo - páč tohle je zlý :/ .. ale nějakým způsobem to dokáže zhruba určit pohyb..
                 //bude hoodně potřeba ořezávat hodnoty dle gyra, páč to jsou randálky jak zmrd.. a to jenom na delay normal
@@ -182,7 +200,7 @@ public class SensorFragment extends Fragment implements SensorEventListener {
                 //pomyslně rozkouskovat na etapy
 
             } else if(event.sensor.getType() == Sensor.TYPE_STEP_DETECTOR){
-                holder.startNewEpisode();
+                //holder.computeMovement();
                 Log.d("POS(" + System.currentTimeMillis() + ")", String.format("Moved by: %s north, %s east, %s up the sky", pos[0], pos[1], pos[2]));
             }
         }
@@ -247,7 +265,6 @@ public class SensorFragment extends Fragment implements SensorEventListener {
         }
     }
 
-    @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
     }
