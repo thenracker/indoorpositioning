@@ -16,8 +16,11 @@ By:Hu, CS (Hu, Chunsheng) ; Wei, WJ (Wei, Wenjian) ; Qin, SQ (Qin, Shiqiao) ; Wa
 http://apps.webofknowledge.com/full_record.do?product=WOS&search_mode=GeneralSearch&qid=2&SID=D45kzucMbWSFBSvgrVY&page=1&doc=3
 
 Zdroje práce studentů a ak.pracovníků podílejících se na výzkumu indoor lokalizace na UHK:
+
 [3] Ing. Kateřina Hanušová - Gamifikace sběru rádiových fingerprintů (diplomová práce)
 
 Navázání na seminární práce na SMAP:
+
 [4] Jedlička Martin - Určování pozice v budovách pomocí Wi-Fi sítí
+
 [5] Brůha RAdek - UHK Localization
