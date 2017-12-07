@@ -7,6 +7,7 @@ Algoritmus k eliminaci odstředivé síly, vznikající při pohybu s telefonem 
 
 
 Zdroje vědecké články:
+
 [1] Rigorous Performance Evaluation of Smartphone GNSS/IMU Sensors for ITS Applications
 By:Gikas, V (Gikas, Vassilis) ; Perakis, H (Perakis, Harris) [dostupné online]
 http://apps.webofknowledge.com/full_record.do?product=WOS&search_mode=GeneralSearch&qid=4&SID=D45kzucMbWSFBSvgrVY&page=1&doc=1
@@ -15,9 +16,13 @@ http://apps.webofknowledge.com/full_record.do?product=WOS&search_mode=GeneralSea
 By:Hu, CS (Hu, Chunsheng) ; Wei, WJ (Wei, Wenjian) ; Qin, SQ (Qin, Shiqiao) ; Wang, XS (Wang, Xingshu) ; Habib, A (Habib, Ayman) ; Wang, RS (Wang, Ruisheng)
 http://apps.webofknowledge.com/full_record.do?product=WOS&search_mode=GeneralSearch&qid=2&SID=D45kzucMbWSFBSvgrVY&page=1&doc=3
 
+
+
 Zdroje práce studentů a ak.pracovníků podílejících se na výzkumu indoor lokalizace na UHK:
 
 [3] Ing. Kateřina Hanušová - Gamifikace sběru rádiových fingerprintů (diplomová práce)
+
+
 
 Navázání na seminární práce na SMAP:
 
