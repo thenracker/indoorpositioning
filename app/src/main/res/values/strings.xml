@@ -4,4 +4,5 @@
     <string name="accelerometer">Accelerometer</string>
     <string name="gyroscope">Gyroscope</string>
     <string name="magnetometer">Magnetometer</string>
+    <string name="title_activity_main">Indoorpositioning</string>
 </resources>
