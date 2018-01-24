@@ -61,6 +61,7 @@ public class LocationHelper implements SensorEventListener {
     private List<MapUtils.LatLng> possibleSpots;
     private boolean precise;
     private boolean step = false;
+    MapUtils.LatLng nowPos;
 
     public static LocationHelper get() {
         return instance;
@@ -86,7 +87,7 @@ public class LocationHelper implements SensorEventListener {
         temperature = 0;
     }
 
-    public void updatePressure(Context context) throws Exception {
+    public void updatePressure() throws Exception {
         URL pressureUrl = new URL("http://www.in-pocasi.cz/meteostanice/stanice.php?stanice=hradec");
 
         StringBuilder builder = new StringBuilder();
@@ -121,6 +122,7 @@ public class LocationHelper implements SensorEventListener {
         }
 
         this.precise = precise;
+        this.nowPos = new MapUtils.LatLng(0, 0);
 
         if (precise) {
             LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
@@ -160,6 +162,19 @@ public class LocationHelper implements SensorEventListener {
                 }
             });
         }
+
+        //update tlaku
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    updatePressure();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+
     }
 
     @Override
@@ -424,6 +439,7 @@ public class LocationHelper implements SensorEventListener {
             realDist[1] /= total;
             realDist[2] /= total;
 
+            /*
             if (possibleSpots == null) {
                 return;
             }
@@ -443,8 +459,15 @@ public class LocationHelper implements SensorEventListener {
                 //VÍME !!!
                 //todo uložit timestamp a 10 vteřin si můžeme být jisti, jinak počítáme znovu
             }
+            */
 
             //onPositionDetected("Na východ " + realDist[0] * length + ", Na sever " + realDist[1] * length);
+            for (LocationListener locationListener : listeners) {
+                double newLat = this.nowPos.getLat() + realDist[0];
+                double newLng = this.nowPos.getLng() + realDist[1];
+                nowPos = new MapUtils.LatLng(newLat, newLng);
+                locationListener.onPositionDetected(nowPos);
+            }
 
             pA = 0;
             pG = 0;
