@@ -223,9 +223,17 @@ public class LocationHelper implements SensorEventListener {
     }
 
     private float[] coefficientFlatAccelerometer() { //3 hodnoty
+        //TODO předělat na void - budeme rovnou tady upravovat hodnoty akcelerometru ;)
         float mX = 0;
         float mY = 0;
         float mZ = 0;
+
+        //TODO - takhle je to pro celý cyklus kroku.. úplně tim v podstatě killneme ten krok..
+        //TODO - chtělo by to jen přičítat kolik z celkového času zde jsou signifikantní a o to to zmenšovat..
+        //TODO .. budou hodnoty na Z třeba 0 0 2 5 3 0 0 .. takže bychom to měli násobit 4/7 se gyro nehlo takže to bylo spolehlivé
+        // TODO - ale to je na prd celkem.. spíš by to chtělo podle timestampu rovnou tady upravit hodnoty akcelerometru
+        //a přepsat je - zmenšit je, je-li třeba
+
         for (int i = 0; i < pG; i += 3) {
 
             //Math.abs
@@ -240,6 +248,7 @@ public class LocationHelper implements SensorEventListener {
         }
 
         //je-li gyroskop hodnota významná, pak budeme osu akcelerometru vynechávat pro výpočet - viz níže
+        //Takže TODO ne úplně na nulu, ale v poměru snížit viz nějako dle grafu
         float[] r = new float[]{1, 1, 1};
         if (mX > GYRO_SIG) {
             r[2] = 0;
@@ -364,7 +373,7 @@ public class LocationHelper implements SensorEventListener {
 
     private void detectSteps(long timestamp) {
 
-        if (timestamp - lastStepTimestamp < MIN_STEP_TIME_LENGTH) {
+        if (timestamp - lastStepTimestamp < MIN_STEP_TIME_LENGTH) { //TODO zvětšit length
             return;
         }
 
@@ -426,7 +435,7 @@ public class LocationHelper implements SensorEventListener {
         // napsat kurva funkci na agresivitu akcelerotmetru - tu snižovat gyrem
         // a vůbec
 
-        float length = STEP_LENGTH;
+        float length = STEP_LENGTH; //TODO bude upraven v následujícím cyklu
 
         float[] dist = new float[]{0f, 0f, 0f}; //osy telefonu
         float[] realDist = new float[]{0f, 0f, 0f}; //osy světa
@@ -435,7 +444,7 @@ public class LocationHelper implements SensorEventListener {
 
         //vynechání výpočtu pohybu, pokud je nějaký gyroskop rychlý - tzn v podstatě eliminace odstředivé síly <3
         float[] gyroSig = coefficientFlatAccelerometer();
-
+        //TODO no a když už tady jsou změněné hodnoty dle gyra, pak můžeme jednat dál
 
         for (int i = 0; i < pGr; i += 3) { //&& (i/3*4) < pR toto by šlo eventuelně
             float gX = (valuesGr[i]);
@@ -448,19 +457,34 @@ public class LocationHelper implements SensorEventListener {
             gY /= total;
             gZ /= total;
 
+            //TODO takže vyřadit gyrosig - to se totiž vracet nebude
             nonGravityFlow += ((1 - gX) * valuesA[i] * gyroSig[0]) + ((1 - gY) * valuesA[i + 1] * gyroSig[1]) + ((1 - gZ) * valuesA[i + 1] * gyroSig[2]);
 
-            //dist[0] //pohyb po xové doleva doprava budeme muset vymyslet ;)
+            //TODO ten nonGravityFlow nedává moc smysl :(
+            //Chce to tady získávat info o rozdílnosti.. o agresivitě a pak tím vynásobit steplength
+            //Dle gravitace porovnávat rozpětí hodnot acc
+            // největší rozdíly jsou na gravitační ose, ke které by se mělo přihlížet
+            // negravitační je v rozsahu pomalá kolem 1 a rychlá až do +- 2.. nevim k čemu to bude :(
+
+            //TODO a zbavit se gXka ?
+            //dist[0] //pohyb po xové doleva doprava budeme muset ignorovat ;)
             dist[1] += (gZ / count);
             dist[2] -= ((gY / count) + (gX / count)); //do mínus zetu se pohybujeme <3
             //odkaz na osy https://developer.android.com/reference/android/hardware/SensorEvent.html
+
+            //pohyb telefonu nás v podstatě zajímá jen dopředu dozadu
+            //pokud je telefon patou dolu, pak jakoby dolu nahoru po Z
+            //
 
             int iR = i / 3 * 4;
             float[] realWorldMove = getRealWorldMove(dist, valuesR[iR], valuesR[iR + 1], valuesR[iR + 2], valuesR[iR + 3]);
             add(realDist, realWorldMove);
         }
 
+        //TODO zde z vypočtené agrese navýšíme / snížíme délku kroku
+
         if (nonGravityFlow > NON_GRAVITY_MOVEMENT_FLOW || nonGravityFlow < -NON_GRAVITY_MOVEMENT_FLOW) {
+            //todo bacha světové souřadnice mají Z gravitační - proto se používá [0] a [1] jako x y
             float total = Math.abs(realDist[0]) + Math.abs(realDist[1]) + Math.abs(realDist[2]);
             realDist[0] /= total;
             realDist[1] /= total;
