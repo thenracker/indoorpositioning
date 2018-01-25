@@ -100,19 +100,21 @@ public class MainFragment extends Fragment implements LocationListener {
             paint.setColor(Color.WHITE);
             canvas.drawRect(new Rect(0, 0, canvas.getWidth(), canvas.getHeight()), paint);
 
-            drawCircle(canvas, Color.RED, newPosition);
 
             if (positions.isEmpty()) {
                 centre = newPosition;
             } else {
-                drawLine(canvas, Color.RED, positions.get(0), newPosition);
+                /*drawLine(canvas, Color.RED, positions.get(0), newPosition);
                 for (int i = 1; i < positions.size(); i++) {
                     drawLine(canvas, Color.RED, positions.get(i), positions.get(i - 1));
-                }
+                }*/
                 for (MapUtils.LatLng position : positions) {
                     drawCircle(canvas, Color.GRAY, position);
                 }
             }
+
+            //now point
+            drawCircle(canvas, Color.RED, newPosition);
 
             positions.add(0, newPosition);
 
@@ -129,13 +131,14 @@ public class MainFragment extends Fragment implements LocationListener {
     private void drawCircle(Canvas canvas, int color, MapUtils.LatLng pos) {
         Paint paint = new Paint();
         paint.setColor(color);
-        canvas.drawCircle((float) ((surfaceView.getWidth() / 2) + pos.getLat()), (float) ((surfaceView.getHeight() / 2) + pos.getLng()), 5, paint);
+        canvas.drawCircle((float) ((surfaceView.getWidth() / 2) + pos.getLat()), (float) ((surfaceView.getHeight() / 2) - pos.getLng()), 3, paint);
     }
 
     private void drawLine(Canvas canvas, int color, MapUtils.LatLng latLng, MapUtils.LatLng newPosition) {
         Paint paint = new Paint();
         paint.setColor(color);
-        canvas.drawLine((float) latLng.getLat(), (float) latLng.getLng(), (float) newPosition.getLat(), (float) newPosition.getLng(), paint);
+        canvas.drawLine((float) ((surfaceView.getWidth() / 2) + latLng.getLat()), (float) ((surfaceView.getHeight() / 2) + latLng.getLng()),
+                (float) ((surfaceView.getWidth() / 2) + newPosition.getLat()), (float) (surfaceView.getHeight() / 2 + newPosition.getLng()), paint);
     }
 
     private void clearOnly (Canvas canvas){

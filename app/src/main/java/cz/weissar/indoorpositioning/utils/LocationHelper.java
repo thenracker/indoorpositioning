@@ -16,7 +16,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -25,11 +24,12 @@ import java.util.List;
 
 public class LocationHelper implements SensorEventListener {
 
+    private static final float STEP_GRAVITY_DRIFT = 0.8f;
+
     private static final float STEP_LENGTH = 68.25f;
-    private static final float STEP_GRAVITY_DRIFT = 1.8f;
     private static final float NON_GRAVITY_MOVEMENT_FLOW = 5f;
     private static final float GYRO_SIG = 1.2f;
-    private static final long MIN_STEP_TIME_LENGTH = 300;
+    private static final long MIN_STEP_TIME_LENGTH = 500;
     private static float NOISE = 0.25f;
     private long lastStepTimestamp = 0;
 
@@ -48,19 +48,21 @@ public class LocationHelper implements SensorEventListener {
     private static int[] sensors = new int[]{
             Sensor.TYPE_LINEAR_ACCELERATION, Sensor.TYPE_GRAVITY, Sensor.TYPE_ROTATION_VECTOR,
             Sensor.TYPE_GYROSCOPE, Sensor.TYPE_PRESSURE,
-            Sensor.TYPE_STEP_DETECTOR, Sensor.TYPE_LIGHT};
+            /*Sensor.TYPE_STEP_DETECTOR,
+            Sensor.TYPE_ACCELEROMETER, */
+            Sensor.TYPE_LIGHT};
 
     private static int[] fewSensors = new int[]{Sensor.TYPE_PRESSURE};
 
     private static List<LocationListener> listeners;
     private static final LocationHelper instance = new LocationHelper();
     private int state = 0;
+
     private Location location;
     private Building building;
 
     private List<MapUtils.LatLng> possibleSpots;
     private boolean precise;
-    private boolean step = false;
     MapUtils.LatLng nowPos;
 
     public static LocationHelper get() {
@@ -196,10 +198,17 @@ public class LocationHelper implements SensorEventListener {
             case Sensor.TYPE_GYROSCOPE:
                 handleGyroscopeMeasure(event.values, event.timestamp);
                 break;
+
+            /*
+            case Sensor.TYPE_ACCELEROMETER:
+                //detectSteps(event.values, event.timestamp); //custom step detector
+                break;
+
             case Sensor.TYPE_STEP_DETECTOR:
-                step = true;
                 handleMovementEpisode(true, event.timestamp);
                 break;
+            */
+
             case Sensor.TYPE_PRESSURE:
                 handlePressureMeasure(event.values[0], event.timestamp);
                 break;
@@ -218,18 +227,26 @@ public class LocationHelper implements SensorEventListener {
         float mY = 0;
         float mZ = 0;
         for (int i = 0; i < pG; i += 3) {
+
+            //Math.abs
             float nX = valuesG[i] < 0 ? -valuesG[i] : valuesG[i];
             float nY = valuesG[i + 1] < 0 ? -valuesG[i + 1] : valuesG[i + 1];
             float nZ = valuesG[i + 2] < 0 ? -valuesG[i + 2] : valuesG[i + 2];
+
+            //Hledáme nejvyšší hodnotu gyroskopu
             mX = nX > mX ? mX : nX;
             mY = nY > mY ? mY : nY;
             mZ = nZ > mZ ? mZ : nZ;
         }
+
+        //je-li gyroskop hodnota významná, pak budeme osu akcelerometru vynechávat pro výpočet - viz níže
         float[] r = new float[]{1, 1, 1};
         if (mX > GYRO_SIG) {
             r[2] = 0;
         }
+
         /*if (mY > GYRO_SIG){ //moc se nás netýká..?!}*/
+
         if (mZ > GYRO_SIG) {
             r[0] = 0;
             r[1] = 0;
@@ -242,18 +259,8 @@ public class LocationHelper implements SensorEventListener {
         valuesA[pA + 1] = clearNoise(vals[1]);
         valuesA[pA + 2] = clearNoise(vals[2]);
         timeA[pA / 3] = timestamp;
-
-        //todo zahodit - dočasné logování
-        if (precise) {
-            for (LocationListener listener : listeners) {
-                listener.onValuesMeasured("" + timestamp, "" + valuesA[pA], "" + valuesA[pA + 1], "" + valuesA[pA + 2], "" + valuesG[pG], "" + valuesG[pG + 1], "" + valuesG[pG + 2]/*, step?"1":"0"*/);
-            }
-            step = false;
-        }
-        //todo zahodit - dočasné logování
-
         pA = (pA + 3) % (valuesA.length);
-        detectSteps(timestamp); //custom step detector
+        detectSteps(timestamp);
     }
 
     private void handleGravityMeasure(float[] vals, long timestamp) {
@@ -356,26 +363,43 @@ public class LocationHelper implements SensorEventListener {
     }
 
     private void detectSteps(long timestamp) {
-        float xG = valuesG[modulo(pG - 1, SIZE)];
-        float yG = valuesG[modulo(pG - 2, SIZE)];
-        float zG = valuesG[modulo(pG - 3, SIZE)];
-        float xA = valuesA[modulo(pA - 1, SIZE)];
+
+        if (timestamp - lastStepTimestamp < MIN_STEP_TIME_LENGTH) {
+            return;
+        }
+
+        float xG = Math.abs(valuesGr[modulo(pGr - 3, SIZE)]);
+        float yG = Math.abs(valuesGr[modulo(pGr - 2, SIZE)]);
+        float zG = Math.abs(valuesGr[modulo(pGr - 1, SIZE)]);
+
+        if (xG > yG && xG > zG) { //telefon na boku nepoužíváme
+            return;
+        }
+
+        //float xA = valuesA[modulo(pA - 3, SIZE)];
         float yA = valuesA[modulo(pA - 2, SIZE)];
-        float zA = valuesA[modulo(pA - 3, SIZE)];
-        float totalG = xG + yG + zG;
-        xG /= totalG;
+        float zA = valuesA[modulo(pA - 1, SIZE)];
+        float totalG = /*xG + */yG + zG;
+
+        //xG /= totalG;
         yG /= totalG;
         zG /= totalG;
-        float groundFlow = xA * xG + yA * yG + zA * zG;
+        float groundFlow = yA * yG + zA * zG;
+
+        //není-li pohyb na negravitačních osách signifikántní, nedetekujeme krok
+
+        //System.out.println(String.format("ground flow %s", groundFlow));
+
         if (groundFlow > STEP_GRAVITY_DRIFT && state == 0) {
             state = 1;
-        } else if (groundFlow < -STEP_GRAVITY_DRIFT && state == 1) {
+        } else if (groundFlow < 0 && state == 1) {
             state = -1;
-        } else if (groundFlow > -STEP_GRAVITY_DRIFT && groundFlow < STEP_GRAVITY_DRIFT && state == -1) {
-            step = true;
-            handleMovementEpisode(false, timestamp);
+        } else if (groundFlow > 0 && state == -1) {
+            handleMovementEpisode(timestamp);
             state = 0;
+            //System.out.println(String.format("ground flow %s, nongroundflow %s", groundFlow, nonGroundFlow));
         }
+
     }
 
     /**
@@ -390,14 +414,13 @@ public class LocationHelper implements SensorEventListener {
     /**
      * Called by single step or by filling up arguments
      */
-    private void handleMovementEpisode(boolean trustFul, long timestamp) {
+    private void handleMovementEpisode(long timestamp) {
 
-        if ((timestamp - lastStepTimestamp) < MIN_STEP_TIME_LENGTH) return;
-
-
+        //synchronizace hodnot
         if (pR / 4 < pGr / 3) { //pokud je méně pR hodnot, tak pGr snížíme
             pGr += ((pR / 4 - pGr / 3) * 3);
         }
+
 
         //todo zde kouzla pro detekci rychlosti a tedy index prodloužení kroku ;)
         // napsat kurva funkci na agresivitu akcelerotmetru - tu snižovat gyrem
@@ -409,7 +432,11 @@ public class LocationHelper implements SensorEventListener {
         float[] realDist = new float[]{0f, 0f, 0f}; //osy světa
         int count = pGr / 3;
         float nonGravityFlow = 0;
+
+        //vynechání výpočtu pohybu, pokud je nějaký gyroskop rychlý - tzn v podstatě eliminace odstředivé síly <3
         float[] gyroSig = coefficientFlatAccelerometer();
+
+
         for (int i = 0; i < pGr; i += 3) { //&& (i/3*4) < pR toto by šlo eventuelně
             float gX = (valuesGr[i]);
             float gY = (valuesGr[i + 1]);
@@ -433,7 +460,7 @@ public class LocationHelper implements SensorEventListener {
             add(realDist, realWorldMove);
         }
 
-        if (trustFul || nonGravityFlow > NON_GRAVITY_MOVEMENT_FLOW || nonGravityFlow < -NON_GRAVITY_MOVEMENT_FLOW) {
+        if (nonGravityFlow > NON_GRAVITY_MOVEMENT_FLOW || nonGravityFlow < -NON_GRAVITY_MOVEMENT_FLOW) {
             float total = Math.abs(realDist[0]) + Math.abs(realDist[1]) + Math.abs(realDist[2]);
             realDist[0] /= total;
             realDist[1] /= total;
@@ -463,8 +490,8 @@ public class LocationHelper implements SensorEventListener {
 
             //onPositionDetected("Na východ " + realDist[0] * length + ", Na sever " + realDist[1] * length);
             for (LocationListener locationListener : listeners) {
-                double newLat = this.nowPos.getLat() + realDist[0];
-                double newLng = this.nowPos.getLng() + realDist[1];
+                double newLat = this.nowPos.getLat() + realDist[0] * length / 10;
+                double newLng = this.nowPos.getLng() + realDist[1] * length / 10;
                 nowPos = new MapUtils.LatLng(newLat, newLng);
                 locationListener.onPositionDetected(nowPos);
             }
