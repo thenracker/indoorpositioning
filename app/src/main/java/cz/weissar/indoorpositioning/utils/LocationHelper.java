@@ -30,6 +30,7 @@ public class LocationHelper implements SensorEventListener {
     private static final float NON_GRAVITY_MOVEMENT_FLOW = 5f;
     private static final float GYRO_SIG = 0.9f;
     private static final long MIN_STEP_TIME_LENGTH = 500;
+    private static final float SIG_WALK = 1.7f;
     private static float NOISE = 0.25f;
     private long lastStepTimestamp = 0;
 
@@ -465,89 +466,74 @@ public class LocationHelper implements SensorEventListener {
             pGr += ((pR / 4 - pGr / 3) * 3);
         }
 
-
-        //todo zde kouzla pro detekci rychlosti a tedy index prodloužení kroku ;)
-        // napsat kurva funkci na agresivitu akcelerotmetru - tu snižovat gyrem
-        // a vůbec
-
-        float length = STEP_LENGTH; //TODO bude upraven v následujícím cyklu
-
         float[] dist = new float[]{0f, 0f, 0f}; //osy telefonu
         float[] realDist = new float[]{0f, 0f, 0f}; //osy světa
         int count = pGr / 3;
+
+        float gravityMax = 0;
+        float gravityMin = 0;
+        float nonGravityMax = 0;
+        float nonGravityMin = 0;
+
+        float gravityFlow = 0;
         float nonGravityFlow = 0;
 
         //vynechání výpočtu pohybu, pokud je nějaký gyroskop rychlý - tzn v podstatě eliminace odstředivé síly <3
         decreaseAccordingToCenteredForce(); //řeší odstředivku
 
+        float length = STEP_LENGTH;
 
         for (int i = 0; i < pGr; i += 3) { //&& (i/3*4) < pR toto by šlo eventuelně
-            float gX = (valuesGr[i]);
+
+            //float gX = (valuesGr[i]);
             float gY = (valuesGr[i + 1]);
             float gZ = (valuesGr[i + 2]);
 
             //Tak, todo zde přidat hodnoty z akcelerometru <3
 
             //normalizace
-            float total = Math.abs(gX) + Math.abs(gY) + Math.abs(gZ);
-            gX /= total;
+            float total = /*Math.abs(gX) + */Math.abs(gY) + Math.abs(gZ);
+            //gX /= total;
             gY /= total;
             gZ /= total;
 
             //TODO takže vyřadit gyrosig - to se totiž vracet nebude
-            nonGravityFlow += ((1 - gX) * valuesA[i]) + ((1 - gY) * valuesA[i + 1]) + ((1 - gZ) * valuesA[i + 1]);
+            gravityFlow = ((gY) * valuesA[i + 1]) + ((gZ) * valuesA[i + 2]);
+            nonGravityFlow = ((1 - gY) * valuesA[i + 1]) + ((1 - gZ) * valuesA[i + 2]);
 
-            //TODO ten nonGravityFlow nedává moc smysl :(
-            //Chce to tady získávat info o rozdílnosti.. o agresivitě a pak tím vynásobit steplength
-            //Dle gravitace porovnávat rozpětí hodnot acc
-            // největší rozdíly jsou na gravitační ose, ke které by se mělo přihlížet
-            // negravitační je v rozsahu pomalá kolem 1 a rychlá až do +- 2.. nevim k čemu to bude :(
+            gravityMax = gravityMax < gravityFlow ? gravityFlow : gravityMax;
+            gravityMin = gravityMin > gravityFlow ? gravityFlow : gravityMin;
+            nonGravityMax = nonGravityMax < nonGravityFlow ? nonGravityFlow : nonGravityMax;
+            nonGravityMin = nonGravityMin > nonGravityFlow ? nonGravityFlow : nonGravityMin;
 
-            //TODO a zbavit se gXka ?
-            //dist[0] //pohyb po xové doleva doprava budeme muset ignorovat ;)
             dist[1] += (gZ / count);
-            dist[2] -= ((gY / count) + (gX / count)); //do mínus zetu se pohybujeme <3
+            dist[2] -= (gY / count); //do mínus zetu se pohybujeme <3
             //odkaz na osy https://developer.android.com/reference/android/hardware/SensorEvent.html
 
             //pohyb telefonu nás v podstatě zajímá jen dopředu dozadu
             //pokud je telefon patou dolu, pak jakoby dolu nahoru po Z
-            //
-
             int iR = i / 3 * 4;
             float[] realWorldMove = getRealWorldMove(dist, valuesR[iR], valuesR[iR + 1], valuesR[iR + 2], valuesR[iR + 3]);
             add(realDist, realWorldMove);
         }
 
-        //TODO zde z vypočtené agrese navýšíme / snížíme délku kroku
+        //ořez
+        //gravityMax = Math.min(gravityMax, 10);
+        //gravityMin = Math.max(gravityMin, 4);
 
-        if (nonGravityFlow > NON_GRAVITY_MOVEMENT_FLOW || nonGravityFlow < -NON_GRAVITY_MOVEMENT_FLOW) {
-            //todo bacha světové souřadnice mají Z gravitační - proto se používá [0] a [1] jako x y
+        float nonGravityDiff = nonGravityMax - nonGravityMin;
+        float gravityDiff = Math.min(Math.max((gravityMax - gravityMin), 4), 10);
+        if (nonGravityDiff > SIG_WALK) { //hodnoty maxima a minima po negravitační ose jsou dostatečné pro krok
+
+            length = (-1.91f * gravityDiff * gravityDiff) + (34.1f * gravityDiff) - 65f;
+
+            System.out.println(String.format("Délka kroku: %s, gravityDiff: %s, nonGravityDiff: %s", length, gravityDiff, nonGravityDiff));
+
+            //todo bacha světové souřadnice mají Z gravitační - proto se používá [0] a [1] jako x y - just for info
             float total = Math.abs(realDist[0]) + Math.abs(realDist[1]) + Math.abs(realDist[2]);
             realDist[0] /= total;
             realDist[1] /= total;
             realDist[2] /= total;
-
-            /*
-            if (possibleSpots == null) {
-                return;
-            }
-
-            for (int i = 0; i < possibleSpots.size(); i++) {
-                possibleSpots.set(i, MapUtils.distanceInGps(possibleSpots.get(i), (double) realDist[1], (double) realDist[0]));
-            }
-
-            Iterator<MapUtils.LatLng> iterator = possibleSpots.iterator();
-            while (iterator.hasNext()) {
-                MapUtils.LatLng next = iterator.next();
-                //TODO - dle rohů budovy čeknout jestli můžeme nějaký vyhodit
-                //iterator.remove();
-            }
-
-            if (possibleSpots.size() == 1) {
-                //VÍME !!!
-                //todo uložit timestamp a 10 vteřin si můžeme být jisti, jinak počítáme znovu
-            }
-            */
 
             //onPositionDetected("Na východ " + realDist[0] * length + ", Na sever " + realDist[1] * length);
             for (LocationListener locationListener : listeners) {
@@ -557,12 +543,14 @@ public class LocationHelper implements SensorEventListener {
                 locationListener.onPositionDetected(nowPos);
             }
 
-            pA = 0;
-            pG = 0;
-            pGr = 0;
-            pR = 0;
-            lastStepTimestamp = timestamp;
+
         }
+
+        pA = 0;
+        pG = 0;
+        pGr = 0;
+        pR = 0;
+        lastStepTimestamp = timestamp;
 
     }
 
