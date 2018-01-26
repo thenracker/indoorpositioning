@@ -28,7 +28,7 @@ public class LocationHelper implements SensorEventListener {
 
     private static final float STEP_LENGTH = 68.25f;
     private static final float NON_GRAVITY_MOVEMENT_FLOW = 5f;
-    private static final float GYRO_SIG = 1.2f;
+    private static final float GYRO_SIG = 0.9f;
     private static final long MIN_STEP_TIME_LENGTH = 500;
     private static float NOISE = 0.25f;
     private long lastStepTimestamp = 0;
@@ -222,8 +222,47 @@ public class LocationHelper implements SensorEventListener {
         return val > NOISE ? val : (val < -NOISE ? val : 0f);
     }
 
-    private float[] coefficientFlatAccelerometer() { //3 hodnoty
-        //TODO předělat na void - budeme rovnou tady upravovat hodnoty akcelerometru ;)
+    private void decreaseAccordingToCenteredForce() { //3 hodnoty
+
+        int iGyro = 0;
+        for (int i = 0; i < pA; i += 3) {
+
+            //float avgGyroX = 0;
+            float avgGyroY = 0;
+            float avgGyroZ = 0;
+
+            while (timeG[iGyro / 3] < timeA[i / 3] && iGyro < SIZE) {
+                //avgGyroX += valuesG[iGyro];
+                avgGyroY += valuesG[iGyro + 1];
+                avgGyroZ += valuesG[iGyro + 2];
+
+                iGyro += 3;
+            }
+
+            //avgGyroX /= (iGyro / 3);
+            avgGyroY /= (iGyro / 3);
+            avgGyroZ /= (iGyro / 3);
+
+            float absZ = Math.abs(avgGyroZ);
+            if (absZ > GYRO_SIG) {
+                if (absZ > (2 * GYRO_SIG)) {
+                    valuesA[i + 1] = 0;
+                } else {
+                    valuesA[i + 1] *= ((2 * GYRO_SIG) - absZ);
+                }
+            }
+
+            float absY = Math.abs(avgGyroY);
+            if (absY > GYRO_SIG) {
+                if (absY > (2 * GYRO_SIG)) {
+                    valuesA[i + 2] = 0;
+                } else {
+                    valuesA[i + 2] *= ((2 * GYRO_SIG) - absY);
+                }
+            }
+        }
+
+        /*//TODO předělat na void - budeme rovnou tady upravovat hodnoty akcelerometru ;)
         float mX = 0;
         float mY = 0;
         float mZ = 0;
@@ -254,13 +293,13 @@ public class LocationHelper implements SensorEventListener {
             r[2] = 0;
         }
 
-        /*if (mY > GYRO_SIG){ //moc se nás netýká..?!}*/
+        *//*if (mY > GYRO_SIG){ //moc se nás netýká..?!}*//*
 
         if (mZ > GYRO_SIG) {
             r[0] = 0;
             r[1] = 0;
         }
-        return r;
+        return r;*/
     }
 
     private void handleLinearAccelerationMeasure(float[] vals, long timestamp) {
@@ -367,7 +406,6 @@ public class LocationHelper implements SensorEventListener {
     }
 
     private float hypsometricAltitude(float temperature, float seaLevelPressure, float ourPressure) {
-        Math.pow(1d, 1d);
         return (float) ((Math.pow((seaLevelPressure / ourPressure), (1 / 5.257d)) - 1) * (temperature + 273.15) / 0.0065f);
     }
 
@@ -397,8 +435,6 @@ public class LocationHelper implements SensorEventListener {
 
         //není-li pohyb na negravitačních osách signifikántní, nedetekujeme krok
 
-        //System.out.println(String.format("ground flow %s", groundFlow));
-
         if (groundFlow > STEP_GRAVITY_DRIFT && state == 0) {
             state = 1;
         } else if (groundFlow < 0 && state == 1) {
@@ -406,7 +442,6 @@ public class LocationHelper implements SensorEventListener {
         } else if (groundFlow > 0 && state == -1) {
             handleMovementEpisode(timestamp);
             state = 0;
-            //System.out.println(String.format("ground flow %s, nongroundflow %s", groundFlow, nonGroundFlow));
         }
 
     }
@@ -443,13 +478,15 @@ public class LocationHelper implements SensorEventListener {
         float nonGravityFlow = 0;
 
         //vynechání výpočtu pohybu, pokud je nějaký gyroskop rychlý - tzn v podstatě eliminace odstředivé síly <3
-        float[] gyroSig = coefficientFlatAccelerometer();
-        //TODO no a když už tady jsou změněné hodnoty dle gyra, pak můžeme jednat dál
+        decreaseAccordingToCenteredForce(); //řeší odstředivku
+
 
         for (int i = 0; i < pGr; i += 3) { //&& (i/3*4) < pR toto by šlo eventuelně
             float gX = (valuesGr[i]);
             float gY = (valuesGr[i + 1]);
             float gZ = (valuesGr[i + 2]);
+
+            //Tak, todo zde přidat hodnoty z akcelerometru <3
 
             //normalizace
             float total = Math.abs(gX) + Math.abs(gY) + Math.abs(gZ);
@@ -458,7 +495,7 @@ public class LocationHelper implements SensorEventListener {
             gZ /= total;
 
             //TODO takže vyřadit gyrosig - to se totiž vracet nebude
-            nonGravityFlow += ((1 - gX) * valuesA[i] * gyroSig[0]) + ((1 - gY) * valuesA[i + 1] * gyroSig[1]) + ((1 - gZ) * valuesA[i + 1] * gyroSig[2]);
+            nonGravityFlow += ((1 - gX) * valuesA[i]) + ((1 - gY) * valuesA[i + 1]) + ((1 - gZ) * valuesA[i + 1]);
 
             //TODO ten nonGravityFlow nedává moc smysl :(
             //Chce to tady získávat info o rozdílnosti.. o agresivitě a pak tím vynásobit steplength
