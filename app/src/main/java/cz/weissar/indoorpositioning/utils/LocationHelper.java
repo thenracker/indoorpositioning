@@ -1,16 +1,10 @@
 package cz.weissar.indoorpositioning.utils;
 
-import android.Manifest;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.location.Location;
-import android.location.LocationManager;
-import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -29,15 +23,18 @@ public class LocationHelper implements SensorEventListener {
     private static final float STEP_LENGTH = 68.25f;
     private static final float NON_GRAVITY_MOVEMENT_FLOW = 5f;
     private static final float GYRO_SIG = 0.9f;
-    private static final long MIN_STEP_TIME_LENGTH = 500;
+    private static final long MIN_STEP_TIME_LENGTH = 300_000_000;//ns
     private static final float SIG_WALK = 1.7f;
     private static float NOISE = 0.25f;
     private long lastStepTimestamp = 0;
 
-    private static int SIZE = 8192; //uvidíme co si můžeme dovolit s RAMkami
+    private static int SIZE = 2048; //uvidíme co si můžeme dovolit s RAMkami
     private static int SIZE_PRESSURE = 150;
 
     private int lastFloor = -1;
+
+    private float altitudeStart = 0;
+    private float lastAltitude = 0;
 
     private float[] valuesA, valuesG, valuesGr, valuesR, valuesP;
 
@@ -59,10 +56,6 @@ public class LocationHelper implements SensorEventListener {
     private static final LocationHelper instance = new LocationHelper();
     private int state = 0;
 
-    private Location location;
-    private Building building;
-
-    private List<MapUtils.LatLng> possibleSpots;
     private boolean precise;
     MapUtils.LatLng nowPos;
 
@@ -126,45 +119,6 @@ public class LocationHelper implements SensorEventListener {
 
         this.precise = precise;
         this.nowPos = new MapUtils.LatLng(0, 0);
-
-        if (precise) {
-            LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                    && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                //TODO připravit dialog
-                return;
-            }
-
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, new android.location.LocationListener() {
-                @Override
-                public void onLocationChanged(Location location) {
-                    LocationHelper.this.location = location;
-                    double dist = Double.MAX_VALUE;
-                    for (Building building : Building.values()) {
-                        float nowDist = MapUtils.distanceInMeters(location, building.getLat(), building.getLng());
-                        if (nowDist < dist) {
-                            dist = nowDist;
-                            LocationHelper.this.building = building;
-                        }
-                    }
-                }
-
-                @Override
-                public void onStatusChanged(String s, int i, Bundle bundle) {
-
-                }
-
-                @Override
-                public void onProviderEnabled(String s) {
-
-                }
-
-                @Override
-                public void onProviderDisabled(String s) {
-
-                }
-            });
-        }
 
         //update tlaku
         new Thread(new Runnable() {
@@ -263,44 +217,6 @@ public class LocationHelper implements SensorEventListener {
             }
         }
 
-        /*//TODO předělat na void - budeme rovnou tady upravovat hodnoty akcelerometru ;)
-        float mX = 0;
-        float mY = 0;
-        float mZ = 0;
-
-        //TODO - takhle je to pro celý cyklus kroku.. úplně tim v podstatě killneme ten krok..
-        //TODO - chtělo by to jen přičítat kolik z celkového času zde jsou signifikantní a o to to zmenšovat..
-        //TODO .. budou hodnoty na Z třeba 0 0 2 5 3 0 0 .. takže bychom to měli násobit 4/7 se gyro nehlo takže to bylo spolehlivé
-        // TODO - ale to je na prd celkem.. spíš by to chtělo podle timestampu rovnou tady upravit hodnoty akcelerometru
-        //a přepsat je - zmenšit je, je-li třeba
-
-        for (int i = 0; i < pG; i += 3) {
-
-            //Math.abs
-            float nX = valuesG[i] < 0 ? -valuesG[i] : valuesG[i];
-            float nY = valuesG[i + 1] < 0 ? -valuesG[i + 1] : valuesG[i + 1];
-            float nZ = valuesG[i + 2] < 0 ? -valuesG[i + 2] : valuesG[i + 2];
-
-            //Hledáme nejvyšší hodnotu gyroskopu
-            mX = nX > mX ? mX : nX;
-            mY = nY > mY ? mY : nY;
-            mZ = nZ > mZ ? mZ : nZ;
-        }
-
-        //je-li gyroskop hodnota významná, pak budeme osu akcelerometru vynechávat pro výpočet - viz níže
-        //Takže TODO ne úplně na nulu, ale v poměru snížit viz nějako dle grafu
-        float[] r = new float[]{1, 1, 1};
-        if (mX > GYRO_SIG) {
-            r[2] = 0;
-        }
-
-        *//*if (mY > GYRO_SIG){ //moc se nás netýká..?!}*//*
-
-        if (mZ > GYRO_SIG) {
-            r[0] = 0;
-            r[1] = 0;
-        }
-        return r;*/
     }
 
     private void handleLinearAccelerationMeasure(float[] vals, long timestamp) {
@@ -339,7 +255,7 @@ public class LocationHelper implements SensorEventListener {
     }
 
     private void handlePressureMeasure(float value, long timestamp) {
-        if (outsidePressure != 0 || building != null) {
+        if (outsidePressure != 0) {
 
             if (pP == SIZE_PRESSURE) {
                 float avgPressure = 0;
@@ -366,19 +282,6 @@ public class LocationHelper implements SensorEventListener {
                 float hypsoAlt = hypsometricAltitude(temperature, outsidePressure, avgPressure); //porovnávat todo
                 //float floor = building.getFloorForAltitude(height, outsidePressure);
 
-                /*if (floor != lastFloor) {
-                    //jsme u schodiště - todo využít - jsme někde u schodů - takže pokud je GPS něco jako 0 0 tak se od toho odrazíme
-                    //TODO building.getPossibleSestupy a do seznamu latLngs které budeme škrtat
-                    possibleSpots = new ArrayList<>();
-                    for (MapUtils.LatLng latLng : building.possibleStairs()){
-                        possibleSpots.add(latLng);
-                    }
-                }
-
-                lastFloor = (int) floor;*/
-
-                //onFloorDetected(lastFloor);
-
                 //LOG
                 //builder = new StringBuilder("timestamp;avgPressure;outsidePressure;sensorManagerAltitude;hypsometricAltitude\n");
                 if (!precise) {
@@ -390,13 +293,14 @@ public class LocationHelper implements SensorEventListener {
 
                 pP = 0;
 
-                System.out.println(String.format("Venkovní tlak: %s, Náš tlak: %s Vypočtená výška: %s",
-                        outsidePressure, avgPressure, height));
+                if (altitudeStart == 0) {
+                    altitudeStart = height;
+                }
 
+                lastAltitude = (height - altitudeStart);
 
-                /*Toast.makeText(UhkHelperApp.getInstance().getApplicationContext(),
-                        String.format("Venkovní tlak: %s, Náš tlak: %s Vypočtená výška: %s, HypsoVýška: %s",
-                                outsidePressure, avgPressure, height, hypsoAlt), Toast.LENGTH_LONG).show();*/
+                /*System.out.println(String.format("Venkovní tlak: %s, Náš tlak: %s Vypočtená výška: %s",
+                        outsidePressure, avgPressure, height));*/
 
 
             }
@@ -412,7 +316,8 @@ public class LocationHelper implements SensorEventListener {
 
     private void detectSteps(long timestamp) {
 
-        if (timestamp - lastStepTimestamp < MIN_STEP_TIME_LENGTH) { //TODO zvětšit length
+        //je-li na krok příliš brzo, nepokračujeme
+        if ((timestamp - lastStepTimestamp) < MIN_STEP_TIME_LENGTH) {
             return;
         }
 
@@ -427,7 +332,7 @@ public class LocationHelper implements SensorEventListener {
         //float xA = valuesA[modulo(pA - 3, SIZE)];
         float yA = valuesA[modulo(pA - 2, SIZE)];
         float zA = valuesA[modulo(pA - 1, SIZE)];
-        float totalG = /*xG + */yG + zG;
+        float totalG = yG + zG;
 
         //xG /= totalG;
         yG /= totalG;
@@ -435,7 +340,6 @@ public class LocationHelper implements SensorEventListener {
         float groundFlow = yA * yG + zA * zG;
 
         //není-li pohyb na negravitačních osách signifikántní, nedetekujeme krok
-
         if (groundFlow > STEP_GRAVITY_DRIFT && state == 0) {
             state = 1;
         } else if (groundFlow < 0 && state == 1) {
@@ -489,15 +393,12 @@ public class LocationHelper implements SensorEventListener {
             float gY = (valuesGr[i + 1]);
             float gZ = (valuesGr[i + 2]);
 
-            //Tak, todo zde přidat hodnoty z akcelerometru <3
-
             //normalizace
             float total = /*Math.abs(gX) + */Math.abs(gY) + Math.abs(gZ);
             //gX /= total;
             gY /= total;
             gZ /= total;
 
-            //TODO takže vyřadit gyrosig - to se totiž vracet nebude
             gravityFlow = ((gY) * valuesA[i + 1]) + ((gZ) * valuesA[i + 2]);
             nonGravityFlow = ((1 - gY) * valuesA[i + 1]) + ((1 - gZ) * valuesA[i + 2]);
 
@@ -507,7 +408,7 @@ public class LocationHelper implements SensorEventListener {
             nonGravityMin = nonGravityMin > nonGravityFlow ? nonGravityFlow : nonGravityMin;
 
             dist[1] += (gZ / count);
-            dist[2] -= (gY / count); //do mínus zetu se pohybujeme <3
+            dist[2] -= (gY / count); //do mínus zetu se pohybujeme
             //odkaz na osy https://developer.android.com/reference/android/hardware/SensorEvent.html
 
             //pohyb telefonu nás v podstatě zajímá jen dopředu dozadu
@@ -518,18 +419,15 @@ public class LocationHelper implements SensorEventListener {
         }
 
         //ořez
-        //gravityMax = Math.min(gravityMax, 10);
-        //gravityMin = Math.max(gravityMin, 4);
-
         float nonGravityDiff = nonGravityMax - nonGravityMin;
         float gravityDiff = Math.min(Math.max((gravityMax - gravityMin), 4), 10);
         if (nonGravityDiff > SIG_WALK) { //hodnoty maxima a minima po negravitační ose jsou dostatečné pro krok
 
             length = (-1.91f * gravityDiff * gravityDiff) + (34.1f * gravityDiff) - 65f;
 
-            System.out.println(String.format("Délka kroku: %s, gravityDiff: %s, nonGravityDiff: %s", length, gravityDiff, nonGravityDiff));
+            //System.out.println(String.format("Délka kroku: %s, gravityDiff: %s, nonGravityDiff: %s", length, gravityDiff, nonGravityDiff));
 
-            //todo bacha světové souřadnice mají Z gravitační - proto se používá [0] a [1] jako x y - just for info
+            //Pozor světové souřadnice mají Z gravitační - proto se používá [0] a [1] jako x y - just for info
             float total = Math.abs(realDist[0]) + Math.abs(realDist[1]) + Math.abs(realDist[2]);
             realDist[0] /= total;
             realDist[1] /= total;
@@ -537,8 +435,8 @@ public class LocationHelper implements SensorEventListener {
 
             //onPositionDetected("Na východ " + realDist[0] * length + ", Na sever " + realDist[1] * length);
             for (LocationListener locationListener : listeners) {
-                double newLat = this.nowPos.getLat() + realDist[0] * length / 10;
-                double newLng = this.nowPos.getLng() + realDist[1] * length / 10;
+                double newLat = this.nowPos.getLat() + realDist[0] * length / 5; // /10 aby nepřetekl canvas
+                double newLng = this.nowPos.getLng() + realDist[1] * length / 5;
                 nowPos = new MapUtils.LatLng(newLat, newLng);
                 locationListener.onPositionDetected(nowPos);
             }
@@ -550,8 +448,11 @@ public class LocationHelper implements SensorEventListener {
         pG = 0;
         pGr = 0;
         pR = 0;
-        lastStepTimestamp = timestamp;
 
+    }
+
+    public void clear() {
+        this.nowPos = new MapUtils.LatLng(0, 0);
     }
 
     /**
@@ -578,26 +479,8 @@ public class LocationHelper implements SensorEventListener {
         base[2] += additions[2];
     }
 
-    private void onFloorDetected(int floor) {
-        for (LocationListener listener : listeners) {
-            listener.onFloorDetected(floor);
-        }
-    }
-
-    private void onPositionDetected(String raw) {
-        for (LocationListener listener : listeners) {
-            //listener.onPositionLogged(raw);
-            //listener.onPositionDetected(velocity); //todo co bude posílat
-        }
-    }
-
-    //getters and registrations
-    public int getActualFloor() {
-        return lastFloor;
-    }
-
-    public int getActualPosition() {
-        return 0; //todo
+    public float getHeightDiff() {
+        return lastAltitude;
     }
 
 

@@ -23,7 +23,7 @@ public class PressureGetterHelper {
             String[] split4 = split3[0].split("<b>");
 
             float pressure = Float.valueOf(split2[split2.length - 1]);
-            float temperature = Float.valueOf(split4[split4.length - 1]);
+            float temperature = 0; //Float.valueOf(split4[split4.length - 1]);
 
             // 232 výška stanice
 

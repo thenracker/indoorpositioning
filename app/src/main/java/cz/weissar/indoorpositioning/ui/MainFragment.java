@@ -8,6 +8,9 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -29,12 +32,46 @@ public class MainFragment extends Fragment implements LocationListener {
 
     private MapUtils.LatLng centre;
     private List<MapUtils.LatLng> positions;
+    private List<Float> heights;
 
     private SurfaceView surfaceView;
+    private SurfaceView surfaceView2;
     private SurfaceHolder holder;
+    private SurfaceHolder holder2;
 
     public static MainFragment newInstance() {
         return new MainFragment();
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.menu_main, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_reset) {
+            positions.clear();
+            heights.clear();
+
+            LocationHelper.get().clear();
+
+            Canvas canvas = holder.lockCanvas();
+            clearOnly(canvas);
+            holder.unlockCanvasAndPost(canvas);
+
+            canvas = holder2.lockCanvas();
+            clearOnly(canvas);
+            holder2.unlockCanvasAndPost(canvas);
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Nullable
@@ -61,6 +98,26 @@ public class MainFragment extends Fragment implements LocationListener {
                 MainFragment.this.holder = null;
             }
         });
+        surfaceView2 = ((SurfaceView) view.findViewById(R.id.surfaceView2));
+        surfaceView2.getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                MainFragment.this.holder2 = holder;
+                Canvas canvas = holder2.lockCanvas();
+                clearOnly(canvas);
+                holder2.unlockCanvasAndPost(canvas);
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+                MainFragment.this.holder2 = null;
+            }
+        });
         return view;
     }
 
@@ -68,6 +125,7 @@ public class MainFragment extends Fragment implements LocationListener {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         positions = new ArrayList<>();
+        heights = new ArrayList<>();
     }
 
     @Override
@@ -104,10 +162,6 @@ public class MainFragment extends Fragment implements LocationListener {
             if (positions.isEmpty()) {
                 centre = newPosition;
             } else {
-                /*drawLine(canvas, Color.RED, positions.get(0), newPosition);
-                for (int i = 1; i < positions.size(); i++) {
-                    drawLine(canvas, Color.RED, positions.get(i), positions.get(i - 1));
-                }*/
                 for (MapUtils.LatLng position : positions) {
                     drawCircle(canvas, Color.GRAY, position);
                 }
@@ -119,6 +173,23 @@ public class MainFragment extends Fragment implements LocationListener {
             positions.add(0, newPosition);
 
             holder.unlockCanvasAndPost(canvas);
+        }
+
+        if (holder2 != null) {
+            Canvas canvas = holder2.lockCanvas();
+
+            Paint paint = new Paint();
+            paint.setColor(Color.WHITE);
+            canvas.drawRect(new Rect(0, 0, canvas.getWidth(), canvas.getHeight()), paint);
+
+            heights.add(LocationHelper.get().getHeightDiff());
+
+            for (int i = 0; i < heights.size(); i++) {
+                Float height = heights.get(i);
+                drawCircleHoriz(canvas, Color.RED, new MapUtils.LatLng(i*4, height*4));
+            }
+
+            holder2.unlockCanvasAndPost(canvas);
         }
 
     }
@@ -134,6 +205,12 @@ public class MainFragment extends Fragment implements LocationListener {
         canvas.drawCircle((float) ((surfaceView.getWidth() / 2) + pos.getLat()), (float) ((surfaceView.getHeight() / 2) - pos.getLng()), 3, paint);
     }
 
+    private void drawCircleHoriz(Canvas canvas, int color, MapUtils.LatLng pos) {
+        Paint paint = new Paint();
+        paint.setColor(color);
+        canvas.drawCircle((float) (/*(surfaceView2.getWidth() / 2) + */pos.getLat()), (float) ((surfaceView2.getHeight() / 2) - pos.getLng()), 3, paint);
+    }
+
     private void drawLine(Canvas canvas, int color, MapUtils.LatLng latLng, MapUtils.LatLng newPosition) {
         Paint paint = new Paint();
         paint.setColor(color);
@@ -141,7 +218,7 @@ public class MainFragment extends Fragment implements LocationListener {
                 (float) ((surfaceView.getWidth() / 2) + newPosition.getLat()), (float) (surfaceView.getHeight() / 2 + newPosition.getLng()), paint);
     }
 
-    private void clearOnly (Canvas canvas){
+    private void clearOnly(Canvas canvas) {
         Paint paint = new Paint();
         paint.setColor(Color.WHITE);
         canvas.drawRect(new Rect(0, 0, canvas.getWidth(), canvas.getHeight()), paint);
