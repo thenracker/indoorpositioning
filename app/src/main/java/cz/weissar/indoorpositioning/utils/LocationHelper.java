@@ -423,7 +423,8 @@ public class LocationHelper implements SensorEventListener {
         float gravityDiff = Math.min(Math.max((gravityMax - gravityMin), 4), 10);
         if (nonGravityDiff > SIG_WALK) { //hodnoty maxima a minima po negravitační ose jsou dostatečné pro krok
 
-            length = (-1.91f * gravityDiff * gravityDiff) + (34.1f * gravityDiff) - 65f;
+            // použít tuto? y = -1,04.x^2+21,08.x-22 - mělo by být lepší
+            length = (-1.04f * gravityDiff * gravityDiff) + (21.08f * gravityDiff) - 22f;
 
             //System.out.println(String.format("Délka kroku: %s, gravityDiff: %s, nonGravityDiff: %s", length, gravityDiff, nonGravityDiff));
 
